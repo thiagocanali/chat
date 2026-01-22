@@ -1,33 +1,49 @@
+<script setup>
+import { computed } from 'vue';
+
+const props = defineProps({
+  message: {
+    type: Object,
+    required: true
+  }
+});
+
+// Define se a mensagem é do usuário ou da IA para mudar a cor e posição
+const isUser = computed(() => props.message.role === 'user');
+</script>
+
 <template>
-  <div :class="['flex w-full py-8 justify-center border-b border-slate-100', 
-                role === 'assistant' ? 'bg-slate-50/50' : 'bg-white']">
-    <div class="flex gap-6 px-4 w-full max-w-3xl">
-      <div :class="['w-9 h-9 rounded-lg flex items-center justify-center shrink-0 shadow-sm',
-                    role === 'assistant' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-white']">
-        <Bot v-if="role === 'assistant'" :size="20" />
-        <User v-else :size="20" />
+  <div 
+    class="flex w-full mb-4 animate-fade-in"
+    :class="isUser ? 'justify-end' : 'justify-start'"
+  >
+    <div 
+      class="max-w-[80%] p-4 rounded-2xl shadow-sm transition-all"
+      :class="isUser 
+        ? 'bg-blue-600 text-white rounded-tr-none' 
+        : 'bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200'"
+    >
+      <div class="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">
+        {{ isUser ? 'Você' : 'Thiago AI' }}
       </div>
-      <div class="flex-1">
-        <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2 font-mono">
-          {{ role === 'assistant' ? 'AI Assistant' : 'Thiago Canali' }}
-        </p>
-        <div class="prose prose-slate max-w-none text-slate-700 text-sm md:text-base" v-html="renderMarkdown"></div>
+      
+      <div class="text-sm leading-relaxed whitespace-pre-wrap">
+        {{ message.content }}
+      </div>
+
+      <div class="text-[9px] mt-2 opacity-50 text-right italic">
+        {{ new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { Bot, User } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { marked } from 'marked';
-
-const props = defineProps(['role', 'content']);
-const renderMarkdown = computed(() => marked(props.content));
-</script>
-
 <style scoped>
-:deep(h3) { font-weight: bold; margin-bottom: 0.5rem; }
-:deep(p) { margin-bottom: 0.5rem; }
-:deep(strong) { color: #4f46e5; }
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
 </style>

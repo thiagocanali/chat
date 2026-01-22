@@ -3,93 +3,71 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
-    // Mantém o histórico salvo no navegador
     messages: JSON.parse(localStorage.getItem('chat_history')) || [],
+    apiKey: localStorage.getItem('user_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '',
     isLoading: false,
   }),
   actions: {
+    setApiKey(key) {
+      this.apiKey = key;
+      localStorage.setItem('user_api_key', key);
+    },
     async sendMessage(content) {
       if (!content.trim()) return;
+      
+      if (!this.apiKey) {
+        this.addAssistantMessage("⚠️ **Configuração necessária:** Insira sua API Key na engrenagem.");
+        return;
+      }
 
-      const userMsg = { 
-        id: uuidv4(), 
-        role: 'user', 
-        content: content, 
-        timestamp: new Date() 
-      };
-      this.messages.push(userMsg);
+      this.messages.push({ id: uuidv4(), role: 'user', content, timestamp: new Date() });
       this.saveToLocal();
-
       this.isLoading = true;
 
       try {
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-        
-        // Usando o modelo 2.0 Flash com a URL v1beta que funcionou nos seus testes
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        // Chamada direta via FETCH para a rota estável V1
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [
-              { 
-                parts: [{ 
-                  text: `Instrução: Você é o assistente do portfólio de Thiago Canali. Responda de forma breve: ${content}` 
-                }] 
-              }
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 1000,
-            }
+            contents: [{ parts: [{ text: content }] }]
           })
         });
 
-        // Tratamento elegante para o limite de cota
-        if (response.status === 429) {
-          throw new Error("LIMITE_EXCEDIDO");
-        }
-
         const data = await response.json();
 
+        if (response.status === 429) throw new Error("LIMITE_EXCEDIDO");
+        if (response.status === 403) throw new Error("CHAVE_INVALIDA");
+        if (!response.ok) throw new Error(data.error?.message || "ERRO_DESCONHECIDO");
+
         if (data.candidates && data.candidates[0]) {
-          const aiResponse = data.candidates[0].content.parts[0].text;
-          
-          this.messages.push({
-            id: uuidv4(),
-            role: 'assistant',
-            content: aiResponse,
-            timestamp: new Date()
-          });
-        } else {
-          throw new Error("ERRO_RESPOSTA");
+          const text = data.candidates[0].content.parts[0].text;
+          this.addAssistantMessage(text);
         }
 
       } catch (error) {
         console.error("Erro na integração:", error);
-        
-        let msgErro = "Desculpe, ocorreu um erro na conexão.";
-        if (error.message === "LIMITE_EXCEDIDO") {
-          msgErro = "⚠️ **Limite atingido:** O Google limita o uso gratuito. Aguarde 30 segundos e tente novamente!";
-        }
-
-        this.messages.push({
-          id: uuidv4(),
-          role: 'assistant',
-          content: msgErro,
-          timestamp: new Date()
-        });
+        this.handleError(error);
       } finally {
         this.saveToLocal();
         this.isLoading = false;
       }
     },
-
+    addAssistantMessage(content) {
+      this.messages.push({ id: uuidv4(), role: 'assistant', content, timestamp: new Date() });
+    },
+    handleError(error) {
+      let msg = "Erro na IA. Verifique sua chave.";
+      if (error.message === "LIMITE_EXCEDIDO") msg = "⚠️ **Cota atingida:** Aguarde 60 segundos.";
+      if (error.message === "CHAVE_INVALIDA") msg = "⚠️ **Chave Inválida:** Gere uma nova chave no AI Studio.";
+      
+      this.addAssistantMessage(msg);
+    },
     saveToLocal() {
       localStorage.setItem('chat_history', JSON.stringify(this.messages));
     },
-
     clearChat() {
-      if (confirm("Deseja apagar o histórico de mensagens?")) {
+      if (confirm("Limpar histórico?")) {
         this.messages = [];
         localStorage.removeItem('chat_history');
       }
