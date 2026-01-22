@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-white m-0 p-0;
+}
+
+/* Estilização das respostas da IA (Markdown) */
+.prose h1, .prose h2, .prose h3 { @apply font-bold text-slate-900 mt-4 mb-2; }
+.prose p { @apply mb-4 leading-relaxed; }
+.prose strong { @apply text-indigo-600 font-bold; }
+.prose code { @apply bg-slate-100 px-1 py-0.5 rounded text-pink-600 font-mono text-sm; }
+.prose pre { @apply bg-slate-900 text-slate-100 p-4 rounded-xl my-4 overflow-x-auto; }
+.prose ul { @apply list-disc ml-5 mb-4; }
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
