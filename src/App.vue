@@ -23,7 +23,7 @@
           <BotIcon :size="32" />
         </div>
         <h1 class="text-3xl font-bold text-slate-900 mb-2">Interface Inteligente</h1>
-        <p class="text-slate-500 max-w-sm">Dê o play no seu projeto. Pergunte qualquer coisa para testar o Markdown.</p>
+        <p class="text-slate-500 max-w-sm">Explore o poder do chat. Envie uma mensagem para testar a renderização em Markdown. <br> Nota: Por ser uma versão de demonstração gratuita, pode haver um breve intervalo entre as respostas.</p>
       </div>
     </main>
 
